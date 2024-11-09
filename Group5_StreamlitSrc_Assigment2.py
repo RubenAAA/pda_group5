@@ -44,7 +44,7 @@ def main():
 
     # Sidebar for user controls
     st.sidebar.header("User Controls for EDA visualizations")
-    hour_filter = st.sidebar.slider("Select Number of Hours for Display", min_value=1, max_value=len(df), value=500)
+    hour_filter = st.sidebar.slider("Select Number of Hours for Display", min_value=1, max_value=len(df), value=17379)
     season_filter = st.sidebar.selectbox("Select Season", options=["All"] + list(df['season'].unique()))
     
     # Sidebar for user input
@@ -184,7 +184,7 @@ def main():
     st.plotly_chart(fig)
 
     st.subheader("Plot bike usage by season and weather")
-    fig = px.box(data_filtered, x='season', y='cnt', color='weathersit', title='Bike Usage by Season and Weather')
+    fig = px.box(df_new, x='season', y='cnt', color='weathersit', title='Bike Usage by Season and Weather')
     st.plotly_chart(fig)
     
     st.markdown("We see that hour cyclicality plays a role and seasonal as well, this visually confirms our suspicions from before. We also see that the heavy rain only happens in the first quarter of the year, perhaps the rain categorical will be redundant")
