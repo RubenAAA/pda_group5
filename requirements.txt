@@ -5,4 +5,6 @@ statsmodels
 streamlit
 pandas
 numpy
-scikit-learn  # for mean_absolute_error and mean_squared_error
+scikit-learn
+pickle
+xgboost
