@@ -174,17 +174,17 @@ def main():
     st.plotly_chart(fig)
 
     st.subheader("Plot average bike usage by hour")
-    hourly_usage = df.groupby('hr')['cnt'].mean().reset_index()
+    hourly_usage = data_filtered.groupby('hr')['cnt'].mean().reset_index()
     fig = px.line(hourly_usage, x='hr', y='cnt', title='Average Bike Usage by Hour')
     st.plotly_chart(fig)
 
     st.subheader("Plot average bike usage by week")
-    hourly_usage = df_new.groupby('week')['cnt'].mean().reset_index()
+    hourly_usage = data_filtered.groupby('week')['cnt'].mean().reset_index()
     fig = px.line(hourly_usage, x='week', y='cnt', title='Average Bike Usage by Day')
     st.plotly_chart(fig)
 
     st.subheader("Plot bike usage by season and weather")
-    fig = px.box(df, x='season', y='cnt', color='weathersit', title='Bike Usage by Season and Weather')
+    fig = px.box(data_filtered, x='season', y='cnt', color='weathersit', title='Bike Usage by Season and Weather')
     st.plotly_chart(fig)
     
     st.markdown("We see that hour cyclicality plays a role and seasonal as well, this visually confirms our suspicions from before. We also see that the heavy rain only happens in the first quarter of the year, perhaps the rain categorical will be redundant")
