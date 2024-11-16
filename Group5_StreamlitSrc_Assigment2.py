@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 import streamlit as st
 from datetime import datetime, time
 import pandas as pd
@@ -39,7 +38,6 @@ def train_test_split(df, features, target, testsize=0.2):
 def main():
     # Container for loading data and models
     with st.container():
-        st.markdown("### wLoading Data and Models")
         df = load_data("bike-sharing-hourly.csv")
         df_new = load_data("bike-sharing-hourly-new.csv")
         linreg_model, expected_features = load_model("baseline_linreg_model.pkl")
@@ -47,13 +45,18 @@ def main():
 
     # Sidebar for user controls
     with st.sidebar:
-        st.header("Exploratory Data Analysis Controls")
+        st.image("bike-icon.jpg")
+        st.header("Chart Display Controls")
         hour_filter = st.slider("Select Number of Hours for Display", min_value=1, max_value=len(df), value=17379)
         season_filter = st.selectbox("Select Season", options=["All"] + list(df['season'].unique()))
-
-        # Sidebar for user input
+        
+        
+    # Container for prediction
+    with st.container():
+        st.header("Prediction Based on User Inputs")
+                # Sidebar for user input
         with st.container():
-            st.header("Scenario Inputs for Prediction")
+            st.markdown("### Scenario Inputs for Prediction")
             date_input = st.date_input(
                 "Select Date",
                 value=datetime(2011, 1, 1).date(),
@@ -66,13 +69,10 @@ def main():
             windspeed_input = st.slider("Windspeed (in km/h)", min_value=0, max_value=67, value=10)
             weathersit_input = st.slider("Weather Condition", min_value=1, max_value=4, value=2)
 
-    # Combine date and time for prediction
-    time_input = time(hour=hour_input)
-    datetime_input = datetime.combine(date_input, time_input)
+        # Combine date and time for prediction
+        time_input = time(hour=hour_input)
+        datetime_input = datetime.combine(date_input, time_input)
 
-    # Container for prediction
-    with st.container():
-        st.markdown("### Prediction Based on User Inputs")
         base_row = df_new[df_new["datetime"] == str(datetime_input)]
         if base_row.empty:
             st.error("No data found for the selected date and time.")
@@ -112,7 +112,6 @@ def main():
 
     # Filter data for Exploratory Data Analysis based on user input
     with st.container():
-        st.markdown("### Data Filtering for Exploratory Analysis")
         if season_filter != "All":
             df_s = df_new[df_new[f"season_{season_filter}"] == 1]
         try:
@@ -133,7 +132,7 @@ def main():
         st.subheader("Missing Values Overview")
         info_data = {
             'Column': df.columns,
-            'Non-Null Count': [df[col].notna().sum() for col in df.columns],
+            'Null Count': [df[col].notna().sum() - len(df[col]) for col in df.columns],
             'Dtype': [df[col].dtype for col in df.columns]
         }
         info_df = pd.DataFrame(info_data)
@@ -164,20 +163,75 @@ def main():
 
         # Time Series of Bike Usage Count
         st.subheader("Time Series of Bike Usage Count")
+        st.markdown("Charts below are interactive, use the sidebar in order to change the visualizations.")
         fig = px.line(data_filtered, x='datetime', y='cnt', title="Bike Usage Over Time")
         st.plotly_chart(fig)
+        st.markdown("There is a general increasing trend. Also seems to be cyclicality in the seasons")
 
         # Average Bike Usage by Hour
         st.subheader("Average Bike Usage by Hour")
         hourly_usage = data_filtered.groupby('hr')['cnt'].mean().reset_index()
         fig = px.line(hourly_usage, x='hr', y='cnt', title='Average Bike Usage by Hour')
         st.plotly_chart(fig) 
+        st.markdown("There are definitely cyclicalities in the day, with consistent peaks at 8 and 17")
+
         
+        # Average Bike Usage by week
         st.subheader("Plot average bike usage by week")
         hourly_usage = data_filtered.groupby('week')['cnt'].mean().reset_index()
         fig = px.line(hourly_usage, x='week', y='cnt', title='Average Bike Usage by Day')
         st.plotly_chart(fig)
+        st.markdown("There  seems to be cyclicality in the months, with more bike usage in hotter months")
 
+        # Calculate summary statistics
+        summary = pd.DataFrame({
+            "Condition": ["Holiday", "Weekend", "Weekday"],
+            "Mean_cnt": [
+                data_filtered[data_filtered['holiday'] == 1]['cnt'].mean(),
+                data_filtered[data_filtered['weekday'] == 0]['cnt'].mean(),
+                data_filtered[data_filtered['weekday'] == 1]['cnt'].mean()
+            ],
+            "Std_cnt": [
+                data_filtered[data_filtered['holiday'] == 1]['cnt'].std(),
+                data_filtered[data_filtered['weekday'] == 0]['cnt'].std(),
+                data_filtered[data_filtered['weekday'] == 1]['cnt'].std()
+            ]
+        })
+
+        # Plotting
+        st.subheader("Bar Plot with Error Bars")
+
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(8, 5))
+        sns.barplot(
+            x="Condition", 
+            y="Mean_cnt", 
+            data=summary, 
+            errorbar=None,
+            palette="viridis",
+            ax=ax
+        )
+
+        # Add error bars
+        ax.errorbar(
+            x=summary["Condition"], 
+            y=summary["Mean_cnt"], 
+            yerr=summary["Std_cnt"], 
+            fmt='none', 
+            c='black', 
+            capsize=5
+        )
+
+        # Add labels and title
+        ax.set_title("Average 'cnt' Across Conditions with Error Bars")
+        ax.set_xlabel("Condition")
+        ax.set_ylabel("Average cnt")
+
+        # Display the plot in Streamlit
+        st.pyplot(fig)
+        st.markdown("There are more people using the bikes during the weekdays rather than weekends or holidays. This suggests that people use the bikes to commute rather than for leisure")
+
+        # Average Bike Usage by season and weather
         st.subheader("Plot bike usage by season and weather")
         fig = px.box(df, x='season', y='cnt', color='weathersit', title='Bike Usage by Season and Weather')
         st.plotly_chart(fig)
@@ -195,7 +249,7 @@ def main():
         st.subheader("Cyclicality Analysis")
         st.image("fft.png", caption="Fast Fourrier Transform")
         st.markdown("There are some significant spikes on the chart. We select only the positive ones and only the unique ones up to two digits.")
-        st.markdown("We create variables that capture the sin and cos of the cyclicalities fro all the cyclicalities that hte FFT gives us")
+        st.markdown("We generate variables representing the sine and cosine components for each cyclical pattern identified by the FFT, ensuring the cyclical nature of the data is effectively captured.")
 
         # PART II: Feature Engineering Summary
         st.header("Feature Engineering")
@@ -249,6 +303,41 @@ def main():
         rmse_xgb = np.sqrt(mean_squared_error(y_test, y_pred_xgb))
         st.write(f"Mean Absolute Error: {mae_xgb:.2f}")
         st.write(f"Root Mean Squared Error: {rmse_xgb:.2f}")
+        st.markdown("""
+                        1. **Initialize the Model**:
+                        - Start with a base `XGBRegressor` and define the objective function, typically `reg:squarederror` for regression tasks.
+
+                        2. **Define a Hyperparameter Grid**:
+                        - Identify a range of key hyperparameters to tune, such as:
+                            - `n_estimators`: Number of trees in the ensemble.
+                            - `max_depth`: Controls the maximum depth of each tree, balancing underfitting and overfitting.
+                            - `learning_rate`: Shrinks weights of new trees to make learning more gradual.
+                            - `subsample` and `colsample_bytree`: Determine the fraction of data and features used for training each tree.
+                            - Regularization parameters (`alpha`, `lambda`, `gamma`) to control overfitting.
+
+                        3. **Handle Temporal Data**:
+                        - Use `TimeSeriesSplit` to ensure that the model respects the temporal order of data, avoiding data leakage. This is especially important for time-series problems.
+
+                        4. **Hyperparameter Optimization**:
+                        - Perform a hyperparameter search (e.g., randomized or grid search) to identify the best combination of parameters, ensuring the model is tailored to the data.
+
+                        5. **Fit the Model**:
+                        - Train the model using the optimal parameters on the training data.
+
+                        6. **Evaluate Feature Importance**:
+                        - Extract feature importance scores to understand which variables contribute most to the predictions. This can guide future feature engineering efforts.
+
+                        7. **Make Predictions**:
+                        - Use the trained model to generate predictions on unseen test data.
+
+                        ---
+
+                        ### Why These Steps Matter
+                        - **Customization**: Optimizing hyperparameters ensures the model is well-suited to the specific dataset.
+                        - **Temporal Integrity**: Time-series cross-validation prevents leakage and ensures reliable performance evaluation.
+                        - **Explainability**: Analyzing feature importance provides insights into the data and model behavior.
+                        - **Performance**: These steps collectively maximize the predictive accuracy and reliability of the XGBoost model.
+                    """)
 
         # Plot Predictions vs Actual
         st.subheader("Model Predictions vs Actual Bike Usage")
@@ -265,9 +354,9 @@ def main():
     with st.container():
         st.header("Recommendations and Key Insights")
         st.markdown("""
-                    Overall Pattern: The model captures the overall seasonal and daily fluctuations in bike usage quite well. The peaks and troughs of the predictions closely follow the actual values, indicating that the model is effectively accounting for cyclic patterns in bike demand.
+                    Overall Pattern: The model is effectively accounting for cyclic patterns in bike demand.
 
-                    Cyclic Trends: The graph shows a clear alignment between predicted and actual values in repeating daily and weekly cycles. This alignment reflects the impact of incorporating Fourier-based cyclical features and lagged values from the SARIMA-inspired configuration (e.g., hourly and multi-hour cyclic terms).
+                    Cyclic Trends: The graph shows a clear alignment between predicted and actual values in repeating daily and weekly cycles.
 
                     Peaks and Valleys: During high-demand periods, the predicted values are very close to the actual values, especially in peak hours. This suggests that the model can accurately forecast busy times, which are critical for the transportation department's planning.
 
@@ -289,5 +378,5 @@ def main():
 if __name__ == "__main__":
     st.set_page_config(layout="wide")
     st.title("Bike Sharing Analysis and Prediction")
-    st.sidebar.title("Dashboard Options")
+    st.sidebar.title("Bike Consulting")
     main()
