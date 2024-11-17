@@ -273,11 +273,9 @@ def main():
 
         9. weekday_hr: Interaction feature representing the product of weekday and hr, capturing patterns by both day and hour.
 
-        10. casual_registered_ratio: Ratio of casual to registered users, giving insight into user type distribution.
+        10. hum_squared: Polynomial feature created by squaring hum, as it has a higher correlation with the target cnt than the original hum value.
 
-        11. hum_squared: Polynomial feature created by squaring hum, as it has a higher correlation with the target cnt than the original hum value.
-
-        12. daylight: Binary column indicating daylight hours (1 if the hour is between sunrise and sunset, 0 otherwise), based on local sunrise and sunset times for Washington D.C.
+        11. daylight: Binary column indicating daylight hours (1 if the hour is between sunrise and sunset, 0 otherwise), based on local sunrise and sunset times for Washington D.C.
                 """)
 
     # Modeling and Predictions
